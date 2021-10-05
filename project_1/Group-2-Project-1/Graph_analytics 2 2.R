@@ -14,8 +14,21 @@ data <- read.table(
   header=F
   )
 net <- graph_from_data_frame(data, directed= TRUE)
+
+#Map node names
+name.map <- c(
+  "-1" = "customer",
+  "1" = "provider",
+  "0" = "peers",
+  "2" = "siblings"
+)
+edge_name <- c()
+for (i in data$V3){
+  edge_name <- append(edge_name, name.map[toString(i)])
+}
+
 #edge.attributes(net)$weight <- data[,c('V3')]
-plot.igraph(net, edge.arrow.size=0.1)
+plot.igraph(net, edge.arrow.size=0.1, edge.label = edge_name)
 hist(degree(net))
 
 ##################simplifying the graph############
@@ -38,60 +51,92 @@ plot(filter_graph)
 hist(degree(filter_graph))
 
 
-########### suggestion  ################
+########### suggestions to simplify graph ################
 # plot a selection of 50 nodes
+# 
+slice <- data[50:150,]
+simplyfied <- graph_from_data_frame(slice, directed= T)
+edge_name <- c()
+for (i in slice$V3){
+  edge_name <- append(edge_name, name.map[toString(i)])
+}
+
+plot(simplyfied, edge.label = edge_name)
 
 
+# select random nodes
 
-# suggestion 2: random nodes
+smpl_nodes <- sample(1:vcount(net), 300)
+sub.g <- induced_subgraph(net, V(net)[smpl_nodes], impl = 'create_from_scratch')
+degree(net,v=V(net)[smpl_nodes])
+plot(sub.g)
 
-random_nodes <- c(sample(vcount(net), 10))
-degree(net,v=V(net)[random_nodes])
-plot(net, v=V(net)[random_nodes])
-
+sub.g
+V(net)[random_nodes]
 
 ############################ FUNCTIONS ####################
 #vertices of the graph:
-V(net) # 26475 vertices in the graph. 
-E(net) # 106762 edges in the graph.
-net.adj <- get.adjacency(net) #adjacency matrix
-net.adj
+V(simplyfied) 
+E(simplyfied) 
+smpl.adj <- get.adjacency(simplyfied) #adjacency matrix
+smpl.adj
 # density of a graph:
-net.density <- edge_density(net)
-net.density ## 0.0001523215
+smpl.density <- edge_density(simplyfied)
+smpl.density ## 0.0001523215
 
 # degree of nodes in a graph:
-hist(degree(net))
+hist(degree(simplyfied))
 
 # centrality metrics:
-centr_betw(net) #Between Centrality
-centr_clo(net) # Closeness Centrality 
+centr_betw(simplyfied) #Between Centrality
 
+# connected components of a graph:
+clu <- components(simplyfied)
+clu
 
-#### PLOTS LAYOUT ############3
-
-V(net_1)$size <- 15
-V(net_1)$color <- "red"
-V(net_1)$label <- "" 
-plot(net_1)
+# dominator tree:
+dominator_tree(simplyfied, 3, mode = c("out"))
 
 
 #SHORTEST PATH FUNCTION:
-paths <- get.shortest.paths(net, 50, 200, 
+paths <- get.shortest.paths(simplyfied, V(simplyfied)[1, 3], 
                             output = "both")
 
-paths
+# igraph-are-connected: Decides whether two vertices are connected
 
-#A DIFFERENT APROXIMATION WOULD BE TO FIND ORGANIZATIONS. RELATIONSHIP == 2 
-# MEANS THE SAME ORGANIZATION
+are.connected(net,"35621","16442")
 
-organizations <- filter(data,V3==2)
-organizations_graph <- graph_from_data_frame(organizations, directed = T)
-plot(organizations_graph)
-head(organizations)
+neighborhood_graph <- neighborhood(simplyfied, c(sample(vcount(simplyfied),1)))
+plot(net, V(net)[c(neighborhood_graph)])
 
-get.shortest.paths(net)
-?get.shortest.paths
+# Get isolates: nodes with degree 0:
+
+isolates <- vertex_attr(net, c(V(net)[degree(net)==0]))
+isolates
+plot(net,V(net[isolates]))
+
+isolates
+
+# Cliques:
+igraph_options(arrow.size=0.1, arrow.width=0.1)
+a <- largest_cliques(net)
+clique1 <- a[[1]]
+
+cliques_graph <- induced.subgraph(net, vids=clique1)
+
+plot(cliques_graph)
+
+#tkplot:
+tkplot(simplyfied)
+
+# Minimum spanning tree
+MST <- minimum.spanning.tree(simplyfied)
+plot(MST, vertex.shapes='none', vertex.label.cex=.7)
+
+# Vertex connectivity 
+vertex_connectivity(simplyfied, "15011", "21573", checks = TRUE)
+
+
 
 ## some resources:
 # https://rstudio-pubs-static.s3.amazonaws.com/337696_c6b008e0766e46bebf1401bea67f7b10.html
