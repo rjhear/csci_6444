@@ -1,10 +1,6 @@
 # PROJECT 1 ---------------------------------------------------------------
-setwd("~/Documents/ms_cs/csci_6444/csci_6444/project_1")
-doParallel::registerDoParallel()
-set.seed(2021)
-
 # If package not installed, install it
-required.packages <- c("igraph", "sna", "CINNA")
+required.packages <- c("igraph", "sna", "doParallel")
 new.packages <-
   required.packages[!(required.packages %in% installed.packages()[, "Package"])]
 if (length(new.packages))
@@ -13,12 +9,19 @@ if (length(new.packages))
 # Load packages
 require(igraph)
 
-# Load data
+# Setup computing environment
+working.dir <- "~/Documents/ms_cs/csci_6444/csci_6444/project_1"
+setwd(working.dir)
+doParallel::registerDoParallel()
+set.seed(2021)
+
+# Load data as a dataframe
 local.path.to.dataset <-
   "/Users/raymondhear/Documents/ms_cs/csci_6444/csci_6444/project_1/as-caida20071105.txt"
 caida.as.dataset <- read.table(file = local.path.to.dataset)
 
 # HELPER_FUNCS ------------------------------------------------------------
+# Set defaults for igraph's plot function
 plot_with_args <- function(g, plot.name) {
   plot.styles <-
     c(
@@ -68,6 +71,7 @@ plot_with_args <- function(g, plot.name) {
   )
 }
 
+# Take a vector and output a vector of the N largest
 find_max_n <- function(vec, n) {
   partial <- length(vec) - n + 1
   vec[vec >= sort(vec, partial = partial)[partial]]
@@ -81,21 +85,16 @@ name.map <- c(
   "0" = "peers",
   "2" = "siblings"
 )
-edge_name <- c()
+edge.name <- c()
 for (i in caida.as.dataset$V3) {
-  edge_name <- append(edge_name, name.map[toString(i)])
+  edge.name <- append(edge.name, name.map[toString(i)])
 }
-caida.as.dataset <- cbind(caida.as.dataset, edge_name)
+caida.as.dataset <- cbind(caida.as.dataset, edge.name)
 
 g <-
   igraph::graph_from_data_frame(d = caida.as.dataset, directed = TRUE)
 
-# filename = "plot_part_2.png"
-# png(filename = filename,
-#     width = 1920,
-#     height = 1080)
 plot_with_args(g, "Part 2 | Labelled Edges")
-# dev.copy(png, filename)
 
 # PART 3 ------------------------------------------------------------------
 #' Simplify the graph
@@ -134,7 +133,7 @@ top.betweeness <- find_max_n(betweenness.centrality, TOP_N)
 closeness.centrality <- igraph::closeness(g.simplified.0)
 top.closeness <- find_max_n(closeness.centrality, TOP_N)
 g.simplified.3 <-
-  igraph::induced_subgraph(graph = g.simplified.0, v = union(names(top.betweeness), names(top.closeness)))
+  igraph::induced_subgraph(graph = g.simplified.0, v = base::union(names(top.betweeness), names(top.closeness)))
 plot_with_args(g.simplified.3, "Simplify | Test 3")
 
 part.3.graph <- g.simplified.3
