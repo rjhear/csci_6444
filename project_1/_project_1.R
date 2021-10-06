@@ -17,7 +17,6 @@ require(igraph)
 local.path.to.dataset <-
   "/Users/raymondhear/Documents/ms_cs/csci_6444/csci_6444/project_1/as-caida20071105.txt"
 caida.as.dataset <- read.table(file = local.path.to.dataset)
-# caida.as.dataset <- head(caida.as.dataset, n = 500)
 
 # HELPER_FUNCS ------------------------------------------------------------
 plot_with_args <- function(g, plot.name) {
@@ -75,7 +74,7 @@ find_max_n <- function(vec, n) {
 }
 
 # PART 2 ------------------------------------------------------------------
-# Map node names
+# Map edge names
 name.map <- c(
   "-1" = "customer",
   "1" = "provider",
@@ -87,16 +86,6 @@ for (i in caida.as.dataset$V3) {
   edge_name <- append(edge_name, name.map[toString(i)])
 }
 caida.as.dataset <- cbind(caida.as.dataset, edge_name)
-
-# 2 - Create a plot, labeling all nodes with of the four labels -----------
-# edges <- c()
-# for (edge in 1:dim(caida.as.dataset)[1]) {
-#   edges <-
-#     append(edges, c(caida.as.dataset[edge, 1], caida.as.dataset[edge, 2]))
-# }
-# g <- igraph::graph(edges, directed = TRUE)
-#
-# plot(x = g)
 
 g <-
   igraph::graph_from_data_frame(d = caida.as.dataset, directed = TRUE)
@@ -202,7 +191,7 @@ igraph::bonpow(graph = part.4.graph, exponent = 0.99)
 part.5.graph <- g.simplified.3
 
 #' Determine:
-#' TOP_N <- 3
+TOP_N <- 15
 #' (a) central node(s)
 ## alpha_centrality
 katz.centrality <- alpha_centrality(part.5.graph, alpha = 0.9)
