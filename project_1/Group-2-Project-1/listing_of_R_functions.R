@@ -45,7 +45,7 @@ plot_with_args <- function(g, plot.name) {
   plot(
     main = plot.name,
     x = g,
-    # === Layout
+    # === layout
     layout = plot.layout,
     asp = .5,
     margin = -0.001,
@@ -61,7 +61,7 @@ plot_with_args <- function(g, plot.name) {
     vertex.label.cex = .5,
     vertex.label.dist = 0,
     # === edge
-    edge.label = edge_name,
+    edge.label = edge.name,
     edge.label.color = "black",
     edge.color = "grey",
     edge.width = .5,
