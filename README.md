@@ -1,7 +1,11 @@
 # Big Data and Analytics (CSCI 6444)
 
-## Project 1
+## Project 1 | Due 2021 Oct. 6
 
-TODOs:
-- [ ] Everyone does all questions, except for question 4.
-- [ ] Question 4, Jose will choose functions that start with "C" or "D", and Ray will choose functions that start with "A" or "B".
+- [x] Submit 2021 Oct. 6
+- [ ] Graded
+
+## Project 2 | Due 2021 Nov. 3
+
+- [ ] Submit 2021 Nov. 3
+- [ ] Graded
