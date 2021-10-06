@@ -46,3 +46,10 @@ po/*~
 
 # OS-specific files
 .DS_Store
+
+# MS Office
+~*.docx
+~*.doc
+
+# Dev/sctach
+_scrap*
