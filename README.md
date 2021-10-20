@@ -3,7 +3,7 @@
 ## Project 1 | Due 2021 Oct. 6
 
 - [x] Submit 2021 Oct. 6
-- [ ] Graded
+- [x] Graded
 
 ## Project 2 | Due 2021 Nov. 3
 
