@@ -1,7 +1,8 @@
 # PROJECT 1 ---------------------------------------------------------------
 # If package not installed, install it
 required.packages <-
-  c("corrplot",
+  c("Boruta",
+    "corrplot",
     "factoextra",
     "Hmisc",
     "tidyverse",
@@ -72,14 +73,36 @@ remove_last_column <-
 #' For this data set, plot the data using pairwise plotting to get a sense of the relationships between the attributes.
 #' a - Try plotting the data using several plotting functions to see what it looks like. Use pairs (e.g., 2D plots)
 #' or 3 variables (3D plots) based on the packages.
+## Correlation
 plot_correlation(data.frame = dry.bean.dataset,
                  correlation.method = "pearson",
                  title = "Pearson Correlation")
 plot_correlation(data.frame = dry.bean.dataset,
                  correlation.method = "spearman",
                  title = "Spearman Correlation")
+## Pairwise
 graphics::pairs(x = dplyr::select(dry.bean.dataset, where(is.numeric)),
                 main = "General Pairwise Scatterplot")
+## Boruta
+boruta.output <-
+  Boruta::Boruta(as.factor(dry.bean.dataset$Class) ~ .,
+                 data = dry.bean.dataset,
+                 doTrace = 2)
+plot(
+  boruta.output,
+  cex.axis = .7,
+  las = 2,
+  xlab = "",
+  main = "Variable Importance"
+)
+legend(
+  'topleft',
+  c("Confirmed", "Tentative", "Rejected", "Shadow"),
+  col = c("green", "yellow", "red", "blue"),
+  lwd = 10,
+  xjust = 0.5,
+  yjust = 0.5
+)
 #' b - Which pairs of attributes seem to be correlated? How are they correlated?
 
 # 2 - Prepare the data ----------------------------------------------------
