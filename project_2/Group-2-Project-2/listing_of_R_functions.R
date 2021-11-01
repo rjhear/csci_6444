@@ -69,6 +69,18 @@ remove_last_column <-
     return(dplyr::select(list.of.frames[[frame.name]], -last.column))
   }
 
+plot_kmeans <- function(list.of.dfs, centers, train.test.ratio) {
+  results_kmeans <-
+    stats::kmeans(x = dplyr::select(list.of.dfs[["train"]], where(is.numeric)),
+                  centers = centers)
+  fitted(results_kmeans, , method = c("classes"))
+  factoextra::fviz_cluster(
+    results_kmeans,
+    dplyr::select(list.of.dfs[["train"]], where(is.numeric)),
+    main = paste("Kmeans | Train-test", train.test.ratio, "| K =", centers)
+  )
+}
+
 # 1 - Plot the data -------------------------------------------------------
 #' For this data set, plot the data using pairwise plotting to get a sense of the relationships between the attributes.
 #' a - Try plotting the data using several plotting functions to see what it looks like. Use pairs (e.g., 2D plots)
@@ -105,6 +117,8 @@ legend(
 )
 #' b - Which pairs of attributes seem to be correlated? How are they correlated?
 
+## All relevant.
+
 # 2 - Prepare the data ----------------------------------------------------
 #' a - Investigate some of the statistics of the data set: summary(). Describe(). What do you glean from this data?
 #' Note: You may have to subset the data to run some of the algorithms on your machine.
@@ -112,6 +126,8 @@ dry.bean.dataset %>% base::summary()
 dry.bean.dataset %>% Hmisc::describe()
 #' b - To subset, pick the most correlated attributes to use – they may all be relevant, so document your rationale for
 #' eliminating some attributes.
+
+## All relevant.
 
 #' c - You will need to translate alphanumeric (e.g., character) values into numeric values. Create a mapping for each
 #' field of values to integers. Make sure you put these mappings into your report.
@@ -125,7 +141,7 @@ label.mapping <- c(
   "SIRA" = 7
 )
 label.encoded <- as.factor(x = dry.bean.dataset$Class)
-
+dry.bean.dataset$Class <- as.factor(dry.bean.dataset$Class)
 #' d - Split the original data set into Training and Test Sets. Use 70%, 60%, 50%
 dataset <- dry.bean.dataset
 split_vars <- c("split_70", "split_60", "split_50")
@@ -138,17 +154,91 @@ for (i in seq_along(split_vars))
 #' e - For the Test Sets, remove the last column which are the labels of the beans and save them.
 split_dfs <- list(split_70, split_60, split_50)
 ## Assign last column
-y_test_vars <- c("y_70", "y_60", "y_50")
+y_test_vars <- c("y_test_70", "y_test_60", "y_test_50")
 for (i in seq_along(split_dfs))
   assign(x = y_test_vars[[i]], value = split_dfs[[i]][["test"]][, ncol(split_dfs[[i]][["test"]]), drop = FALSE])
 ## Drop last column
-split_70$test <- remove_last_column(split_70)
-split_60$test <- remove_last_column(split_60)
-split_50$test <- remove_last_column(split_50)
+split_70$test <- remove_last_column(split_70, "test")
+split_60$test <- remove_last_column(split_60, "test")
+split_50$test <- remove_last_column(split_50, "test")
 
 # 3 - Clustering on the whole dataset -------------------------------------
 #' a - Apply three clustering techniques to the subsetted data: KMeans, kNN, and iClust. In the original data set, there
 #' were seven classes according to the authors. You should analyze the data for clusters from k=5 to 10.
+## Kmeans
+for (k in seq(5, 10)){
+  plot_kmeans(list.of.dfs = split_50,
+              centers = k,
+              train.test.ratio = "50-50")
+  filename = paste("plot_kmeans_50_k", k, ".png", sep = "")
+  message(filename)
+  ggplot2::theme(aspect.ratio = 1)
+  ggplot2::ggsave(
+    filename = filename,
+    plot = ggplot2::last_plot(),
+    device = "png",
+    scale = 1,
+    limitsize = FALSE,
+    width = 1280,
+    height = 1280,
+    dpi = 150,
+    units = "px",
+    
+  )
+}
+
+for (k in seq(5, 10)){
+  plot_kmeans(list.of.dfs = split_60,
+              centers = k,
+              train.test.ratio = "60-20")
+  filename = paste("plot_kmeans_60_k", k, ".png", sep = "")
+  message(filename)
+  ggplot2::theme(aspect.ratio = 1)
+  ggplot2::ggsave(
+    filename = filename,
+    plot = ggplot2::last_plot(),
+    device = "png",
+    scale = 1,
+    limitsize = FALSE,
+    width = 1280,
+    height = 1280,
+    dpi = 150,
+    units = "px",
+    
+  )
+}
+
+for (k in seq(5, 10)){
+  plot_kmeans(list.of.dfs = split_70,
+              centers = k,
+              train.test.ratio = "70-30")
+  filename = paste("plot_kmeans_70_k", k, ".png", sep = "")
+  message(filename)
+  ggplot2::theme(aspect.ratio = 1)
+  ggplot2::ggsave(
+    filename = filename,
+    plot = ggplot2::last_plot(),
+    device = "png",
+    scale = 1,
+    limitsize = FALSE,
+    width = 1280,
+    height = 1280,
+    dpi = 150,
+    units = "px",
+    
+  )
+}
+
+## Knn
+predictions <- class::knn(
+  train = dplyr::select(split_70$train, where(is.numeric)),
+  test = split_70$test,
+  k = 3,
+  cl = as.factor(dplyr::select(split_70$train, where(
+    purrr::negate(is.numeric)
+  ))$Class)
+)
+
 
 #' b - Build a table with your results succinctly displayed. Document your results in your report in separate sections.
 #' Show screen shots of plots of the clusters (see class notes). Suggest using factoextra methods.
