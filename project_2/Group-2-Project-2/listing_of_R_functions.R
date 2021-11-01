@@ -1,13 +1,18 @@
 # PROJECT 1 ---------------------------------------------------------------
 # If package not installed, install it
 required.packages <-
-  c("factoextra", "Hmisc", "tidyverse", "doParallel")
+  c("corrplot",
+    "factoextra",
+    "Hmisc",
+    "tidyverse",
+    "doParallel")
 new.packages <-
   required.packages[!(required.packages %in% installed.packages()[, "Package"])]
 if (length(new.packages))
   install.packages(new.packages)
 
 # Load packages
+require(corrplot)
 require(factoextra)
 require(Hmisc)
 require(tidyverse)
@@ -42,10 +47,39 @@ train_test_split <- function(dataset, percentage_training) {
   return(list(train = train, test = test))
 }
 
+plot_correlation <-
+  function(data.frame, correlation.method, title) {
+    correlation.matrix.pearson <-
+      cor(
+        x = dplyr::select(data.frame, where(is.numeric)),
+        method = correlation.method,
+        use = "pairwise.complete.obs"
+      )
+    corrplot(corr = correlation.matrix.pearson,
+             method = "circle",
+             type = "lower")
+    mtext(text = title, side = 3)
+  }
+
+remove_last_column <-
+  function(list.of.frames, frame.name = "test") {
+    last.column <-
+      names(list.of.frames[[frame.name]][, ncol(list.of.frames[[frame.name]])])
+    return(dplyr::select(list.of.frames[[frame.name]], -last.column))
+  }
+
 # 1 - Plot the data -------------------------------------------------------
 #' For this data set, plot the data using pairwise plotting to get a sense of the relationships between the attributes.
 #' a - Try plotting the data using several plotting functions to see what it looks like. Use pairs (e.g., 2D plots)
 #' or 3 variables (3D plots) based on the packages.
+plot_correlation(data.frame = dry.bean.dataset,
+                 correlation.method = "pearson",
+                 title = "Pearson Correlation")
+plot_correlation(data.frame = dry.bean.dataset,
+                 correlation.method = "spearman",
+                 title = "Spearman Correlation")
+graphics::pairs(x = dplyr::select(dry.bean.dataset, where(is.numeric)),
+                main = "General Pairwise Scatterplot")
 #' b - Which pairs of attributes seem to be correlated? How are they correlated?
 
 # 2 - Prepare the data ----------------------------------------------------
@@ -58,6 +92,16 @@ dry.bean.dataset %>% Hmisc::describe()
 
 #' c - You will need to translate alphanumeric (e.g., character) values into numeric values. Create a mapping for each
 #' field of values to integers. Make sure you put these mappings into your report.
+label.mapping <- c(
+  "BARBUNYA" = 1,
+  "BOMBAY" = 2,
+  "CALI" = 3,
+  "DERMASON" = 4,
+  "HOROZ" = 5,
+  "SEKER" = 6,
+  "SIRA" = 7
+)
+label.encoded <- as.factor(x = dry.bean.dataset$Class)
 
 #' d - Split the original data set into Training and Test Sets. Use 70%, 60%, 50%
 dataset <- dry.bean.dataset
@@ -75,10 +119,14 @@ y_test_vars <- c("y_70", "y_60", "y_50")
 for (i in seq_along(split_dfs))
   assign(x = y_test_vars[[i]], value = split_dfs[[i]][["test"]][, ncol(split_dfs[[i]][["test"]]), drop = FALSE])
 ## Drop last column
-for (i in seq_along(split_dfs)){}
-  # 3 - Clustering on the whole dataset -------------------------------------
+split_70$test <- remove_last_column(split_70)
+split_60$test <- remove_last_column(split_60)
+split_50$test <- remove_last_column(split_50)
+
+# 3 - Clustering on the whole dataset -------------------------------------
 #' a - Apply three clustering techniques to the subsetted data: KMeans, kNN, and iClust. In the original data set, there
-#' were seven classes according to the authors. You should analyze the data for clusters from k =5 to 10.
+#' were seven classes according to the authors. You should analyze the data for clusters from k=5 to 10.
+
 #' b - Build a table with your results succinctly displayed. Document your results in your report in separate sections.
 #' Show screen shots of plots of the clusters (see class notes). Suggest using factoextra methods.
 
