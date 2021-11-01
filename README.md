@@ -9,3 +9,8 @@
 
 - [ ] Submit 2021 Nov. 3
 - [ ] Graded
+
+## Project 3 | Due *Saturday BEFORE Final Exam*
+
+- [ ] Submit ???
+- [ ] Graded
