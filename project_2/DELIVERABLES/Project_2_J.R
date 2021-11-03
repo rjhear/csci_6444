@@ -2,14 +2,12 @@
 # If package not installed, install it
 required.packages <- c("dplyr", "tidyverse", "readxl", "GGally", "ISLR","dlookr",
                        'visdat', 'ggplot2', 'gridExtra', 'ggcorrplot', 'scales',
-                     'tidymodels')
+                     'tidymodels', 'glm', 'factoextra','psych')
 new.packages <-
   required.packages[!(required.packages %in% installed.packages()[, "Package"])]
 if (length(new.packages))
   install.packages(new.packages)
 
-install.packages('factoextra')
-install.packages('psych')
 # Load packages
 require(dplyr)
 require(tidyverse)
@@ -28,23 +26,52 @@ require(psych)
 
 
 #-------------------------------------------------------------------------------
+# HELPER_FUNCS ------------------------------------------------------------
+train_test_split <- function(dataset, percentage_training) {
+  train <-
+    dplyr::sample_frac(tbl = dataset, size = percentage_training)
+  train_obs <- as.numeric(x = rownames(x = train))
+  test <- dataset[-train_obs,]
+  return(list(train = train, test = test))
+}
+
+remove_last_column <-
+  function(list.of.frames, frame.name = "test") {
+    last.column <-
+      names(list.of.frames[[frame.name]][, ncol(list.of.frames[[frame.name]])])
+    return(dplyr::select(list.of.frames[[frame.name]], -last.column))
+  }
+
+plot_kmeans <- function(list.of.dfs, centers, train.test.ratio) {
+  results_kmeans <-
+    stats::kmeans(x = dplyr::select(list.of.dfs[["train"]], where(is.numeric)),
+                  centers = centers)
+  fitted(results_kmeans, method = c("classes"))
+  factoextra::fviz_cluster(
+    results_kmeans,
+    dplyr::select(list.of.dfs[["train"]], where(is.numeric)),
+    main = paste("Kmeans | Train-test", train.test.ratio, "| K =", centers)
+  )
+}
+
 
 #---------------------------Tasks-----------------------------------------------
-# 1: Plot data using pairwise plotting and get a sense of the relationships
-# between the attributes
-
-#links:
-#https://towardsdatascience.com/generalized-pairs-plot-in-r-6bbfde2c98b8
-#https://github.com/PacktPublishing/Hands-On-Exploratory-Data-Analysis-with-R/blob/master/Chapter06/Chapter_6.r
-#https://cran.r-project.org/web/packages/dlookr/vignettes/EDA.html
-
 directory = '/Users/josegarcia/Documents/GitHub/csci_6444/project_2/DryBeanDataset/Dry_Bean_Dataset.xlsx'   
 drybeans_data <- read_excel(directory)
-
 str(drybeans_data) 
+
+
+
+# 1. For this data set, plot the data using pairwise plotting to get a sense of 
+#the relationships between the attributes. 
+
+#a. Try plotting the data using several plotting functions to see what it looks 
+#like. Use pairs (e.g., 2D plots) or 3 variables (3D plots) based on the packages. 
 
 pairs(drybeans_data[1:16]) #Pair plot visualization. Unable to understand graph.
 
+#b. Which pairs of attributes seem to be correlated? How are they correlated?
+  
 plot_correlate(drybeans_data[1:16]) # correlation plot
 
 drybeans_data %>%
@@ -55,21 +82,18 @@ ggplot(drybeans_data) +
   geom_point(aes(x=Eccentricity, y=ShapeFactor3, fill= Class, alpha=0.3)) #distribution plot
 ggpairs(drybeans_data[1:16])
 
-#drybeans_data %>% # Web report
-#  eda_web_report(targe='Class',
- #                subtitle = "Bean Type",
-  #               output_dir ="./",
-   #              output_file= "EDA.html",
-    #             theme = 'blue')
 #-------------------------------------------------------------------------------
 
 #2: Prepare the Data 
-#a Basic statistics:
+
+#a. Investigate some of the statistics of the data set: summary(). Describe(). 
+#What do you glean from this data?
 describe(drybeans_data)
+summary(drybeans_data)
+#b b. To subset, pick the most correlated attributes to use – they may all be 
+#relevant, so document your rationale for eliminating some attributes..
 
-#b Data subset: using PCA.
-
-#Normalize data and PCA
+#                  *****PCA*********
 drybeans.pr <- prcomp(drybeans_data[1:16], center = T, scale = T)
 summary(drybeans.pr)
 
@@ -121,24 +145,58 @@ var.coord[,1:3]
 # PC2: MinorAxisLength, Compactness, SF3, SF1, AspectRation, Eccentriciy
 # PC3: Solidity, SF4. 
 
+
+#               ********** END OF PCA************
+
+# DATA SUBSET:
+drybeans.sset= drybeans_data[,c('Perimeter', 'MajorAxisLength', 
+                                'ConvexArea','EquivDiameter', 
+                                'ShapeFactor2', 'MinorAxisLength',
+                                'Compactness', 'ShapeFactor3',
+                                'ShapeFactor1', 'AspectRation',
+                                'Eccentricity', 'Class')]
+
+# c. Class features into numeric values:
+drybeans.sset = drybeans.sset %>%
+  mutate(num_class = case_when(
+    Class == 'BARBUNYA' ~0,
+    Class == 'BOMBAY' ~1,
+    Class == 'CALI' ~2,
+    Class == 'DERMASON' ~3,
+    Class == 'HOROZ' ~4,
+    Class == 'SEKER' ~5,
+    Class == 'SIRA' ~6,
+  ))
+
+#DATA STANDARIZATION:
+
+drybeans.stand <- as.data.frame(scale(drybeans.sset[1:11]))
+
+# d. Split training and test sets: 70%
+train_test= train_test_split(drybeans.stand, 0.7)
+train_set = as.data.frame(train_test[1])
+test_set = as.data.frame(train_test[2])
+
+#e. For the Test Sets, remove the last column which are the labels of the beans and save them.
+
+
 #-------------------- Task 3: Clustering the Whole Data Set --------------------
-#  links: 
-# https://uc-r.github.io/kmeans_clustering
 
 # k-means:
-clean.data <- drybeans_data[, c('Perimeter', 'MajorAxisLength', 
-                                           'ConvexArea','EquivDiameter', 
-                                           'ShapeFactor2', 'MinorAxisLength',
-                                           'Compactness', 'ShapeFactor3',
-                                           'ShapeFactor1', 'AspectRation',
-                                           'Eccentricity', 'Class'
-                                           )]
-clean.data <- scale(clean.data[,1:11])
-as.data.frame.matrix(clean.data) 
-head(clean.data)
-K2 <- kmeans(clean.data[1:16], centers=5, n=25)
-str(K2)
+  # 5 clusters
+K5 <- kmeans(train_set, centers=5)
+K5
+?kmeans
+# 6 clusters
+K6 <- kmeans(train_set, centers=6)
+K6
 
-table(clean.data$Class, K2$cluster)
-plot(clean.data[c("Area", "Extent")], col= K2$cluster)
-points(K2$centers[,c("Area","Extent")], col=1:3, pch = 8, cex=2)
+# 7 cluseters
+K7 <- kmeans(train_set, centers=7)
+K7
+
+K10 <- kmeans(train_set, centers=10)
+# factoextra:
+factoextra::fviz_cluster(K10, train_set)
+
+
