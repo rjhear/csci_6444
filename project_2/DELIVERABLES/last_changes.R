@@ -7,7 +7,9 @@ required.packages <-
     "Hmisc",
     "tidyverse",
     "doParallel",
-    "iclust")
+    "gmodels",
+    'psych'
+    )
 new.packages <-
   required.packages[!(required.packages %in% installed.packages()[, "Package"])]
 if (length(new.packages))
@@ -18,7 +20,10 @@ require(corrplot)
 require(factoextra)
 require(Hmisc)
 require(tidyverse)
-require(iclust)
+require(gmodels)
+require(psych)
+
+
 
 # Setup computing environment
 working.dir <- "~/Documents/GitHub/csci_6444/project_2"
@@ -149,6 +154,7 @@ label.encoded <- as.factor(x = dry.bean.dataset$Class)
 dry.bean.dataset$Class <- as.factor(dry.bean.dataset$Class)
 #' d - Split the original data set into Training and Test Sets. Use 70%, 60%, 50%
 dataset <- dry.bean.dataset
+dataset <- dataset %>% mutate(target=ifelse(Class != "BOMBAY", 1, 0))
 split_vars <- c("split_70", "split_60", "split_50")
 training_sizes <- c(0.7, 0.6, 0.5)
 for (i in seq_along(split_vars))
@@ -156,6 +162,7 @@ for (i in seq_along(split_vars))
     x = split_vars[[i]],
     value = train_test_split(dataset = dataset, percentage_training = training_sizes[[i]])
   )
+
 #' e - For the Test Sets, remove the last column which are the labels of the beans and save them.
 split_dfs <- list(split_70, split_60, split_50)
 ## Assign last column
@@ -262,13 +269,20 @@ kmeans10.test.labels <- kmeans5$cluster
 
 
 ## Knn
+# predictions <- class::knn(
+#   train = dplyr::select(split_70$train, where(is.numeric)),
+#   test = split_70$test,
+#   k = 5,
+#   cl = as.factor(dplyr::select(split_70$train, where(
+#     purrr::negate(is.numeric)
+#   ))$Class)
+# )
+
 predictions <- class::knn(
   train = dplyr::select(split_70$train, where(is.numeric)),
   test = split_70$test,
   k = 5,
-  cl = as.factor(dplyr::select(split_70$train, where(
-    purrr::negate(is.numeric)
-  ))$Class)
+  cl = as.factor(split_70$train$Class)
 )
 
 knn.5 <- class::knn(
@@ -298,16 +312,73 @@ knn.9 <- class::knn(
   ))$Class)
 )
 
-table(knn.5)
-table(kmeans5.test.labels)
+# Results comparison using Cross-Table:
+
+#5 clusters Kmeans vs knn:
+install.packages('gmodels')
+CrossTable(kmeans5.test.labels, unclass(as.factor(knn.5)), prop.chisq='False')
+
+#7 clusters kmeans vs knn:
+CrossTable(kmeans7.test.labels, unclass(as.factor(knn.7)), prop.chisq='False')
+
+#9 clusters kmeans vs knn:
+CrossTable(kmeans9.test.labels, unclass(as.factor(knn.9)), prop.chisq='False')
+
+train_data = na.omit(split_70$train)
+test_data = na.omit(split_70$test)
+
+
+
+linera.model <- glm(
+  formula = train_data$Class~train_data$Area+train_data$Perimeter+train_data$MajorAxisLength+train_data$MinorAxisLength+train_data$AspectRation+train_data$Eccentricity+train_data$ConvexArea+train_data$EquivDiameter+train_data$Extent+train_data$Solidity+train_data$roundness+train_data$Compactness+train_data$ShapeFactor1+train_data$ShapeFactor2+train_data$ShapeFactor3+train_data$ShapeFactor4,
+  data = train_data
+)
+
+y.70 <- unclass(as.factor(split_70$train$target))
+model.70 <- stats::glm(formula = y.70 ~ ., data = split_70$train)
+predict.glm(object = model.70, newdata = split_70$test)
+
+model.70
 
 # iClust:
-ic.out.5 <- iclust(split_70$test, nclusters=5)
-ic.out.7 <- 
-ic.out.9 <- 
+ic.out.5 <- iclust(split_70$test, nclusters=5, title='nclusters =5' )
+ic.out.6 <- iclust(split_70$test, nclusters=6, title='nclusters =6' )
+ic.out.7 <- iclust(split_70$test, nclusters=7, title='nclusters =7' )
+ic.out.8 <- iclust(split_70$test, nclusters=8, title='nclusters =8' )
+ic.out.9 <- iclust(split_70$test, nclusters=9, title='nclusters =9' )
+ic.out.10 <- iclust(split_70$test, nclusters=10, title='nclusters =10')
 
 
-# 
+
+
+# glm: 
+dataset <- dry.bean.dataset
+dataset <- dataset %>% mutate(target=ifelse(Class != "BOMBAY", 1, 0))
+split_vars <- c("split_70", "split_60", "split_50")
+training_sizes <- c(0.7, 0.6, 0.5)
+for (i in seq_along(split_vars))
+  assign(
+    x = split_vars[[i]],
+    value = train_test_split(dataset = dataset, percentage_training = training_sizes[[i]])
+  )
+
+split_70$train <- split_70$train %>% select(-Class)
+
+y.70 <- unclass(split_70$train$target)
+model.70 <- stats::glm(formula = y.70 ~ ., data = dplyr::select(split_70$train, -target))
+predictions_glm <- predict.glm(object = model.70, newdata = split_70$test)
+target <- append(split_70$test$target, 0)
+predictions_glm <- append(predictions_glm, 0)
+
+CrossTable(target, round(predictions_glm))
+
+
+model.70
+plot(model.70$fitted.values,model.70$residuals)
+plot(model.70$fitted.values, model.70$residuals, main = "Residuals vs Fitted", xlab = "Fitted", ylab="Residuals")
+
+
+
 
 #' b - Build a table with your results succinctly displayed. Document your results in your report in separate sections.
 #' Show screen shots of plots of the clusters (see class notes). Suggest using factoextra methods.
