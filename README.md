@@ -7,10 +7,10 @@
 
 ## Project 2 | Due 2021 Nov. 3
 
-- [ ] Submit 2021 Nov. 3
+- [x] Submit 2021 Nov. 3
 - [ ] Graded
 
-## Project 3 | Due *Saturday BEFORE Final Exam*
+## Project 3 | Due *2021 Dec. 11 (Saturday BEFORE Final Exam)*
 
-- [ ] Submit ???
+- [ ] Submit 2021 Dec. 11
 - [ ] Graded
